@@ -6,6 +6,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
 import android.util.Log;
+import android.util.Pair;
 
 import androidx.annotation.NonNull;
 
@@ -24,12 +25,6 @@ import com.google.android.exoplayer2.upstream.BandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -47,7 +42,7 @@ import ai.guiji.duix.sdk.client.bean.ImageFrame;
 import ai.guiji.duix.sdk.client.bean.ModelInfo;
 import ai.guiji.duix.sdk.client.render.RenderSink;
 import ai.guiji.duix.sdk.client.util.Logger;
-import ai.guiji.duix.sdk.client.util.MD5Util;
+import ai.guiji.duix.sdk.client.util.OrderedMap;
 
 /**
  * DUIX绘制线程，负责绘制线程及音频播放控制
@@ -85,6 +80,7 @@ public class DUIXThread implements Runnable {
     private ByteBuffer maskBuffer;
 
     private final RenderSink renderSink;
+    private final OrderedMap cacheMap = new OrderedMap();
 
     public DUIXThread(Context context, SCRFDNcnn scrfdncnn, RenderSink renderSink, Callback callback) {
         this.mContext = context;
@@ -118,6 +114,12 @@ public class DUIXThread implements Runnable {
                     callback.onEvent(Constant.CALLBACK_EVENT_AUDIO_PLAY_START, "play start", null);
                 } else if (state == Player.STATE_ENDED) {
                     callback.onEvent(Constant.CALLBACK_EVENT_AUDIO_PLAY_END, "play end", null);
+                    if (!cacheMap.isEmpty()) {
+                        Pair<String, Integer> pair = cacheMap.getFirstDataAndRemove();
+                        if (pair != null) {
+                            handlePlayAudio(pair.second, pair.first);
+                        }
+                    }
                 }
             }
 
@@ -314,7 +316,9 @@ public class DUIXThread implements Runnable {
         Logger.d("收到所有嘴型信息 size: " + all_bnf);
         if (mExoPlayer != null) {
             if (mExoPlayer.isPlaying()) {
-                mExoPlayer.stop();
+                cacheMap.addData(path, all_bnf);
+                return;
+                //mExoPlayer.stop();
             }
             MediaSource videoSource = new ProgressiveMediaSource.Factory(new DefaultDataSourceFactory(mContext))
                     .createMediaSource(new MediaItem.Builder().setUri(path).build());

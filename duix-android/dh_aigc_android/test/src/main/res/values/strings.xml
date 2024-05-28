@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">数字人Demo</string>
+    <string name="app_name">硅基数字人Demo</string>
     <string name="play">播放</string>
     <string name="download">下载</string>
     <string name="ready">就绪</string>

@@ -55,12 +55,19 @@ android {
         }
     }
 
+    applicationVariants.configureEach { variant ->
+        variant.outputs.configureEach {
+            outputFileName = "DUIX-${versionName}-${variant.buildType.name}-${releaseTime()}.apk"
+        }
+    }
+
     lint {
         baseline = file("lint-baseline.xml")
     }
     lintOptions{
         checkReleaseBuilds false
     }
+    ndkVersion compileNdkVersion.toString()
 }
 
 dependencies {
@@ -79,4 +86,8 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.10.0'
     implementation 'com.squareup.okhttp3:okhttp-sse:4.10.0'
     implementation 'com.google.android.exoplayer:exoplayer:2.14.2'
+}
+
+static def releaseTime() {
+    return new Date().format("yyyyMMdd_HHmmss")
 }

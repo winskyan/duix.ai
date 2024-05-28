@@ -29,6 +29,10 @@ class CallActivity : BaseActivity() {
     private lateinit var binding: ActivityCallBinding
     private var duix: DUIX? = null
     private var mDUIXRender: DUIXRenderer? = null
+    private var mFileNameIndex = 1
+    private val MAX_FILE_NAME_INDEX = 7
+    val executor = Executors.newSingleThreadExecutor()
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,7 +47,14 @@ class CallActivity : BaseActivity() {
         Log.e("123", "modelDir: $modelDir")
 
         binding.btnPlay.setOnClickListener {
-            playWav()
+            playTestWav()
+            playTestWav()
+            playTestWav()
+            playTestWav()
+            playTestWav()
+            playTestWav()
+            playTestWav()
+//            playWav()
         }
 
         Glide.with(mContext).load("file:///android_asset/bg/bg1.png").into(binding.ivBg)
@@ -89,8 +100,7 @@ class CallActivity : BaseActivity() {
                 }
 
                 Constant.CALLBACK_EVENT_AUDIO_PLAY_PROGRESS -> {
-//                    Log.e(TAG, "audio play progress: $info")
-
+                    Log.i(TAG, "audio play progress: $info")
                 }
             }
         }
@@ -113,7 +123,8 @@ class CallActivity : BaseActivity() {
     }
 
     private fun playWav() {
-        val wavName = "help.wav"
+        Log.d(TAG, "play help")
+        val wavName = "intro.wav"
         val wavDir = File(mContext.getExternalFilesDir("duix"), "wav")
         if (!wavDir.exists()) {
             wavDir.mkdirs()
@@ -122,6 +133,37 @@ class CallActivity : BaseActivity() {
         if (!wavFile.exists()) {
             // 拷贝到sdcard
             val executor = Executors.newSingleThreadExecutor()
+            executor.execute {
+                val input = mContext.assets.open("wav/${wavName}")
+                val out: OutputStream = FileOutputStream("${wavFile.absolutePath}.tmp")
+                val buffer = ByteArray(1024)
+                var read: Int
+                while (input.read(buffer).also { read = it } != -1) {
+                    out.write(buffer, 0, read)
+                }
+                input.close()
+                out.close()
+                File("${wavFile.absolutePath}.tmp").renameTo(wavFile)
+                duix?.playAudio(wavFile.absolutePath)
+            }
+        } else {
+            duix?.playAudio(wavFile.absolutePath)
+        }
+    }
+
+    private fun playTestWav() {
+        if (mFileNameIndex > MAX_FILE_NAME_INDEX) {
+            mFileNameIndex = 1
+        }
+        val wavName = "${mFileNameIndex++}.wav"
+        Log.d(TAG, "play $wavName")
+        val wavDir = File(mContext.getExternalFilesDir("duix"), "wav")
+        if (!wavDir.exists()) {
+            wavDir.mkdirs()
+        }
+        val wavFile = File(wavDir, wavName)
+        if (!wavFile.exists()) {
+            // 拷贝到sdcard
             executor.execute {
                 val input = mContext.assets.open("wav/${wavName}")
                 val out: OutputStream = FileOutputStream("${wavFile.absolutePath}.tmp")
